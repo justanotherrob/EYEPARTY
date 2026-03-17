@@ -3,11 +3,12 @@
   const BASE_POINTS = 100;
   const MAX_SPEED_BONUS = 50;
   const FAST_THRESHOLD = 3;
+  const FEEDBACK_DURATION = 1200;
 
   const MESSAGES = {
-    correctFast: ["EAGLE EYES!", "LIGHTNING FAST!", "PERFECT VISION!", "20/20!", "SHARP!"],
+    correctFast: ["EAGLE EYES!", "LIGHTNING FAST!", "PERFECT VISION!", "20/20!", "SHARP!", "SNIPER!"],
     correctSlow: ["Got there!", "Phew!", "Just in time!", "Close call!", "Squeezed it!"],
-    wrong: ["Needs glasses!", "Blurry!", "Ouch!", "Try contacts?", "Not quite!"],
+    wrong: ["Needs glasses!", "Blurry!", "Ouch!", "Try contacts?", "Not quite!", "Nope!"],
     timeout: ["Too slow!", "Time's up!", "Blink and you missed it!", "Snoozing!", "Wake up!"]
   };
 
@@ -23,7 +24,6 @@
     answered: false
   };
 
-  // DOM refs
   const screens = {
     start: document.getElementById("screen-start"),
     quiz: document.getElementById("screen-quiz"),
@@ -43,7 +43,11 @@
     finalScore: document.getElementById("final-score"),
     finalRank: document.getElementById("final-rank"),
     correctCount: document.getElementById("correct-count"),
-    playAgainBtn: document.getElementById("play-again-btn")
+    playAgainBtn: document.getElementById("play-again-btn"),
+    feedbackOverlay: document.getElementById("feedback-overlay"),
+    feedbackIcon: document.getElementById("feedback-icon"),
+    feedbackText: document.getElementById("feedback-text"),
+    feedbackPoints: document.getElementById("feedback-points")
   };
 
   function showScreen(name) {
@@ -55,21 +59,46 @@
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  function showReaction(type) {
-    const msg = randomFrom(MESSAGES[type]);
-    els.reactionMsg.textContent = msg;
-    els.reactionMsg.className = "reaction-msg " + type;
-    els.reactionMsg.classList.add("show");
-    setTimeout(() => els.reactionMsg.classList.remove("show"), 1500);
-  }
-
   function calculateSpeedBonus(timeLeft) {
     if (timeLeft >= QUESTION_TIME - FAST_THRESHOLD) {
       return MAX_SPEED_BONUS;
     }
     const elapsed = QUESTION_TIME - timeLeft;
-    const bonus = Math.round(MAX_SPEED_BONUS * (1 - elapsed / QUESTION_TIME));
-    return Math.max(0, bonus);
+    return Math.max(0, Math.round(MAX_SPEED_BONUS * (1 - elapsed / QUESTION_TIME)));
+  }
+
+  function showFeedback(type, points) {
+    const overlay = els.feedbackOverlay;
+    let icon, msg;
+
+    if (type === "correctFast" || type === "correctSlow") {
+      overlay.className = "feedback-overlay correct show";
+      icon = "\u2713";
+      msg = randomFrom(MESSAGES[type]);
+    } else if (type === "wrong") {
+      overlay.className = "feedback-overlay wrong show";
+      icon = "\u2717";
+      msg = randomFrom(MESSAGES.wrong);
+    } else {
+      overlay.className = "feedback-overlay timeout show";
+      icon = "\u23F0";
+      msg = randomFrom(MESSAGES.timeout);
+    }
+
+    els.feedbackIcon.textContent = icon;
+    els.feedbackText.textContent = msg;
+    els.feedbackPoints.textContent = points > 0 ? `+${points}` : "0";
+
+    // Also update the persistent reaction msg in the header
+    els.reactionMsg.textContent = msg;
+    els.reactionMsg.className = "reaction-msg " + type + " show";
+
+    return new Promise(resolve => {
+      setTimeout(() => {
+        overlay.classList.remove("show");
+        resolve();
+      }, FEEDBACK_DURATION);
+    });
   }
 
   async function startGame() {
@@ -109,7 +138,6 @@
     els.questionText.textContent = q.question;
     els.reactionMsg.className = "reaction-msg";
 
-    // Render options
     els.optionsContainer.innerHTML = "";
     q.options.forEach((opt, i) => {
       const btn = document.createElement("button");
@@ -119,7 +147,6 @@
       els.optionsContainer.appendChild(btn);
     });
 
-    // Start timer
     startTimer();
   }
 
@@ -129,7 +156,6 @@
     els.timerBar.style.width = "100%";
     els.timerBar.classList.remove("urgent");
 
-    // Force reflow then animate
     void els.timerBar.offsetWidth;
     els.timerBar.style.transition = `width ${QUESTION_TIME}s linear`;
     els.timerBar.style.width = "0%";
@@ -159,6 +185,10 @@
 
     const timeLeft = state.timeLeft;
 
+    // Disable all buttons immediately
+    const btns = els.optionsContainer.querySelectorAll(".option-btn");
+    btns.forEach(btn => (btn.disabled = true));
+
     try {
       const res = await fetch("/api/check", {
         method: "POST",
@@ -171,43 +201,42 @@
       });
       const data = await res.json();
 
-      // Highlight buttons
-      const btns = els.optionsContainer.querySelectorAll(".option-btn");
+      // Highlight the tapped button
       btns.forEach((btn, i) => {
-        btn.disabled = true;
-        if (i === data.correctIndex) btn.classList.add("correct");
-        if (i === answerIndex && !data.correct) btn.classList.add("wrong");
+        if (i === answerIndex) {
+          btn.classList.add(data.correct ? "correct" : "wrong");
+        }
       });
+
+      let points = 0;
+      let feedbackType;
 
       if (data.correct) {
         const bonus = calculateSpeedBonus(timeLeft);
-        const points = BASE_POINTS + bonus;
+        points = BASE_POINTS + bonus;
         state.score += points;
         state.correctAnswers++;
-
-        if (timeLeft >= QUESTION_TIME - FAST_THRESHOLD) {
-          showReaction("correctFast");
-        } else {
-          showReaction("correctSlow");
-        }
+        feedbackType = timeLeft >= QUESTION_TIME - FAST_THRESHOLD ? "correctFast" : "correctSlow";
       } else {
-        showReaction("wrong");
+        feedbackType = "wrong";
       }
+
+      await showFeedback(feedbackType, points);
     } catch (err) {
       console.error("Check answer error:", err);
+      await showFeedback("wrong", 0);
     }
 
-    setTimeout(nextQuestion, 1800);
+    nextQuestion();
   }
 
-  function handleTimeout() {
+  async function handleTimeout() {
     state.answered = true;
-    showReaction("timeout");
 
     const btns = els.optionsContainer.querySelectorAll(".option-btn");
     btns.forEach(btn => (btn.disabled = true));
 
-    // Still fetch correct answer to highlight it
+    // Fire-and-forget the check call (just for logging, no need to wait)
     fetch("/api/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -216,17 +245,10 @@
         questionIndex: state.currentQuestion,
         answerIndex: -1
       })
-    })
-      .then(r => r.json())
-      .then(data => {
-        const btns = els.optionsContainer.querySelectorAll(".option-btn");
-        btns.forEach((btn, i) => {
-          if (i === data.correctIndex) btn.classList.add("correct");
-        });
-      })
-      .catch(() => {});
+    }).catch(() => {});
 
-    setTimeout(nextQuestion, 1800);
+    await showFeedback("timeout", 0);
+    nextQuestion();
   }
 
   function nextQuestion() {
@@ -265,7 +287,6 @@
     showScreen("results");
   }
 
-  // Event listeners
   els.startBtn.addEventListener("click", startGame);
   els.nameInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") startGame();

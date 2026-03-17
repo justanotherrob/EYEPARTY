@@ -7,10 +7,13 @@ const allQuestions = require("./questions");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
-});
+const dbConfig = { connectionString: process.env.DATABASE_URL };
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("railway")) {
+  dbConfig.ssl = { rejectUnauthorized: false };
+} else if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgres")) {
+  dbConfig.ssl = process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false;
+}
+const pool = new Pool(dbConfig);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
