@@ -1,0 +1,548 @@
+/* ============================================
+   VA BOOTCAMP — Arcade / CRT Aesthetic
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #0a0a0a;
+  --bg-panel: #111111;
+  --green: #00ff41;
+  --green-dim: #00cc33;
+  --green-glow: rgba(0, 255, 65, 0.3);
+  --green-bright: #33ff77;
+  --red: #ff3333;
+  --red-glow: rgba(255, 51, 51, 0.3);
+  --amber: #ffaa00;
+  --text: #c0ffc0;
+  --text-dim: #508050;
+  --font: 'IBM Plex Mono', 'Courier New', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overflow-x: hidden;
+  -webkit-font-smoothing: none;
+}
+
+/* Scanline overlay */
+.scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15) 0px,
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* ---- Screens ---- */
+.screen {
+  display: none;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.screen.active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Hero Snellen E ---- */
+.hero-e {
+  font-size: clamp(120px, 30vw, 250px);
+  font-weight: 700;
+  color: var(--green);
+  text-shadow:
+    0 0 20px var(--green-glow),
+    0 0 60px var(--green-glow),
+    0 0 120px rgba(0, 255, 65, 0.15);
+  line-height: 1;
+  margin-bottom: 10px;
+  animation: flicker 4s infinite;
+  user-select: none;
+}
+
+.hero-e.small {
+  font-size: clamp(60px, 15vw, 100px);
+  margin-bottom: 5px;
+}
+
+@keyframes flicker {
+  0%, 95%, 100% { opacity: 1; }
+  96% { opacity: 0.85; }
+  97% { opacity: 1; }
+  98% { opacity: 0.9; }
+}
+
+/* ---- Typography ---- */
+.title {
+  font-size: clamp(24px, 6vw, 48px);
+  font-weight: 700;
+  color: var(--green);
+  text-shadow: 0 0 10px var(--green-glow);
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: clamp(12px, 3vw, 18px);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 40px;
+}
+
+/* ---- Name Entry ---- */
+.name-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+}
+
+#name-input {
+  width: 100%;
+  padding: 16px 20px;
+  background: var(--bg);
+  border: 2px solid var(--green-dim);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 18px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#name-input::placeholder {
+  color: var(--text-dim);
+}
+
+#name-input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 15px var(--green-glow);
+}
+
+#name-input.shake {
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* ---- Buttons ---- */
+.btn-primary {
+  width: 100%;
+  max-width: 400px;
+  padding: 18px 24px;
+  background: transparent;
+  border: 2px solid var(--green);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.btn-primary:hover {
+  background: var(--green);
+  color: var(--bg);
+  box-shadow: 0 0 25px var(--green-glow);
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* ---- Quiz Header ---- */
+.quiz-header {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.player-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.reaction-msg {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.3s, transform 0.3s;
+  min-height: 20px;
+}
+
+.reaction-msg.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reaction-msg.correctFast {
+  color: var(--green-bright);
+  text-shadow: 0 0 10px var(--green-glow);
+}
+
+.reaction-msg.correctSlow {
+  color: var(--green-dim);
+}
+
+.reaction-msg.wrong {
+  color: var(--red);
+  text-shadow: 0 0 10px var(--red-glow);
+}
+
+.reaction-msg.timeout {
+  color: var(--amber);
+}
+
+.quiz-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.question-counter {
+  font-size: 16px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.score-display {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--green);
+  text-shadow: 0 0 8px var(--green-glow);
+}
+
+/* ---- Timer ---- */
+.timer-container {
+  width: 100%;
+  max-width: 600px;
+  height: 6px;
+  background: var(--bg-panel);
+  border: 1px solid #222;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green-glow);
+}
+
+.timer-bar.urgent {
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red-glow);
+}
+
+/* ---- Question ---- */
+.question-text {
+  width: 100%;
+  max-width: 600px;
+  font-size: clamp(16px, 4vw, 22px);
+  font-weight: 500;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 24px;
+  line-height: 1.5;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Options ---- */
+.options-container {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-btn {
+  width: 100%;
+  padding: 18px 20px;
+  background: var(--bg-panel);
+  border: 2px solid #333;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: clamp(14px, 3.5vw, 16px);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1.4;
+}
+
+.option-btn:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 10px var(--green-glow);
+}
+
+.option-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.option-btn:disabled {
+  cursor: default;
+}
+
+.option-btn.correct {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 15px var(--green-glow);
+}
+
+.option-btn.wrong {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(255, 51, 51, 0.1);
+  box-shadow: 0 0 15px var(--red-glow);
+}
+
+/* ---- Results ---- */
+.results-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.results-title {
+  font-size: clamp(20px, 5vw, 36px);
+  color: var(--green);
+  text-shadow: 0 0 10px var(--green-glow);
+  letter-spacing: 3px;
+}
+
+.final-score {
+  font-size: clamp(36px, 10vw, 72px);
+  font-weight: 700;
+  color: var(--green-bright);
+  text-shadow:
+    0 0 20px var(--green-glow),
+    0 0 60px var(--green-glow);
+}
+
+.final-rank {
+  font-size: clamp(20px, 5vw, 32px);
+  color: var(--amber);
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.correct-count {
+  font-size: 16px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+.leaderboard-link {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 14px;
+  letter-spacing: 2px;
+  border-bottom: 1px solid var(--text-dim);
+  transition: color 0.2s;
+  margin-top: 8px;
+}
+
+.leaderboard-link:hover {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+/* ============================================
+   LEADERBOARD PAGE
+   ============================================ */
+
+.leaderboard-page {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.leaderboard-container {
+  width: 100%;
+  max-width: 800px;
+}
+
+.leaderboard-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-table th {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-dim);
+  letter-spacing: 3px;
+  text-align: left;
+  border-bottom: 2px solid #222;
+}
+
+.leaderboard-table td {
+  padding: 14px 16px;
+  font-size: clamp(16px, 3vw, 22px);
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.leaderboard-table tr:first-child td {
+  color: var(--green-bright);
+  font-weight: 700;
+  font-size: clamp(18px, 3.5vw, 26px);
+  text-shadow: 0 0 10px var(--green-glow);
+}
+
+.leaderboard-table tr:nth-child(2) td,
+.leaderboard-table tr:nth-child(3) td {
+  color: var(--green);
+}
+
+.col-rank {
+  width: 80px;
+  text-align: center !important;
+}
+
+.col-score {
+  width: 120px;
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-name {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.empty-msg {
+  text-align: center !important;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 40px 16px !important;
+}
+
+/* New entry animation */
+.new-entry {
+  animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ---- CRT vignette ---- */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.5) 100%
+  );
+  z-index: 999;
+}
+
+/* ---- Mobile tweaks ---- */
+@media (max-width: 480px) {
+  .screen {
+    padding: 16px;
+  }
+
+  .option-btn {
+    padding: 16px;
+  }
+
+  .quiz-header {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--green-dim);
+}
